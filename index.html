@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Probability Distributions</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.8.0/math.min.js"></script>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 20px;
+            background-color: #f4e1d2;
+        }
+        .container {
+            max-width: 600px;
+            margin: auto;
+        }
+        canvas {
+            max-width: 100%;
+        }
+        select, input, button {
+            margin: 10px;
+            padding: 10px;
+        }
+        .formula {
+            font-size: 1.2em;
+            margin: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Probability Distributions</h2>
+        <label for="distribution">Select Distribution:</label>
+        <select id="distribution">
+            <option value="gaussian">gaussian</option>
+            <option value="uniform">Uniform</option>
+            <option value="rayleigh">Rayleigh</option>
+            <option value="exponential">Exponential</option>
+            <option value="poisson">Poisson</option>
+            <option value="binomial">Binomial</option>
+            <option value="laplacian">Laplacian</option>
+        </select>
+        <div id="parameters"></div>
+        <div id="formulas" class="formula"></div>
+        <button onclick="plotGraphs()">Generate Graphs</button>
+        <button onclick="startRecognition()">🎤 Voice Input</button>
+        <p id="status"></p>
+        <canvas id="pdfChart"></canvas>
+        <canvas id="cdfChart"></canvas>
+    </div>
+
+    <script>
+        let pdfChart, cdfChart;
+        let recognition;
+
+        function getParameters() {
+            let distribution = document.getElementById("distribution").value;
+            let parametersDiv = document.getElementById("parameters");
+            let formulasDiv = document.getElementById("formulas");
+            parametersDiv.innerHTML = "";
+            formulasDiv.innerHTML = "";
+
+
+            switch (distribution) {
+                case "gaussian":
+                    parametersDiv.innerHTML = `<label>Mean: <input type="number" id="mean" value="0"></label>
+                                               <label>Std Dev: <input type="number" id="stddev" value="1"></label>`;
+                    formulasDiv.innerHTML = `
+                        PDF: \\( f(x) = \\frac{1}{\\sigma \\sqrt{2\\pi}} e^{-\\frac{(x-\\mu)^2}{2\\sigma^2}} \\) <br>
+                        CDF: \\( F(x) = \\frac{1}{2} \\left[ 1 + \\text{erf} \\left( \\frac{x - \\mu}{\\sigma \\sqrt{2}} \\right) \\right] \\)`;
+                    break;
+                case "uniform":
+                    parametersDiv.innerHTML = `<label>Min: <input type="number" id="min" value="0"></label>
+                                               <label>Max: <input type="number" id="max" value="1"></label>`;
+                    formulasDiv.innerHTML = `
+                        PDF: \\( f(x) = \\frac{1}{b-a}, \\quad a \\leq x \\leq b \\) <br>
+                        CDF: \\( F(x) = \\frac{x-a}{b-a}, \\quad a \\leq x \\leq b \\)`;
+                    break;
+                case "exponential":
+                    parametersDiv.innerHTML = `<label>Lambda: <input type="number" id="lambda" value="1"></label>`;
+                    formulasDiv.innerHTML = `
+                        PDF: \\( f(x) = \\lambda e^{-\\lambda x}, \\quad x \\geq 0 \\) <br>
+                        CDF: \\( F(x) = 1 - e^{-\\lambda x}, \\quad x \\geq 0 \\)`;
+                    break;
+                case "poisson":
+                    parametersDiv.innerHTML = `<label>Lambda: <input type="number" id="lambda" value="3"></label>`;
+                    formulasDiv.innerHTML = `
+                     PMF: \\( P(X = k) = \\frac{\\lambda^k e^{-\\lambda}}{k!} \\) <br>
+                     CDF: \\( F(k) = \\sum_{i=0}^{k} P(X = i) \\)`;
+                    break;
+                case "binomial":
+                    parametersDiv.innerHTML = `<label>n: <input type="number" id="n" value="10"></label>
+                                               <label>p: <input type="number" id="p" value="0.5"></label>`;
+                    formulasDiv.innerHTML = `
+                        PMF: \\( P(X = k) = \\binom{n}{k} p^k (1-p)^{n-k} \\) <br>
+                        CDF: \\( F(k) = \\sum_{i=0}^{k} P(X = i) \\)`;
+                    break;
+                case "rayleigh":
+                    parametersDiv.innerHTML = `<label>Scale: <input type="number" id="scale" value="1"></label>`;
+                    formulasDiv.innerHTML = `
+                        PDF: \\( f(x) = \\frac{x}{\\sigma^2} e^{-\\frac{x^2}{2\\sigma^2}}, \\quad x \\geq 0 \\) <br>
+                        CDF: \\( F(x) = 1 - e^{-\\frac{x^2}{2\\sigma^2}}, \\quad x \\geq 0 \\)`;
+                    break;
+                case "laplacian":
+                    parametersDiv.innerHTML = `<label>Mean: <input type="number" id="mean" value="0"></label>
+                                               <label>Scale: <input type="number" id="scale" value="1"></label>`;
+                    formulasDiv.innerHTML = `
+                        PDF: \\( f(x) = \\frac{1}{2b} e^{-\\frac{|x-\\mu|}{b}} \\) <br>
+                        CDF: \\( F(x) = \\begin{cases} 
+                            \\frac{1}{2} e^{\\frac{x-\\mu}{b}}, & x < \\mu \\\\ 
+                            1 - \\frac{1}{2} e^{-\\frac{x-\\mu}{b}}, & x \\geq \\mu 
+                        \\end{cases} \\)`;
+                    break;
+            }
+            MathJax.typesetPromise().catch(err => console.log("MathJax Error:", err)); // Update formulas
+        }
+        
+        function validateInputs() {        
+    let distribution = document.getElementById("distribution").value;
+
+    if (distribution === "uniform") {
+        let min = parseFloat(document.getElementById("min").value);
+        let max = parseFloat(document.getElementById("max").value);
+        if (min >= max) {
+            alert("Invalid input: Min must be less than Max for the Uniform distribution.");
+            return false;
+        }
+    }
+
+    if (distribution === "binomial") {
+        let p = parseFloat(document.getElementById("p").value);
+        if (p < 0 || p > 1) {
+            alert("Invalid input: Probability p must be between 0 and 1 in the Binomial distribution.");
+            return false;
+        }
+    }
+
+    if (distribution === "poisson" || distribution === "exponential") {
+        let lambda = parseFloat(document.getElementById("lambda").value);
+        if (lambda <= 0) {
+            alert("Invalid input: Lambda must be greater than 0.");
+            return false;
+        }
+    }
+
+    if (distribution === "rayleigh") {
+        let scale = parseFloat(document.getElementById("scale").value);
+        if (scale <= 0) {
+            alert("Invalid input: Scale parameter must be positive.");
+            return false;
+        }
+    }
+
+    return true; // Inputs are valid
+}
+
+
+        function plotGraphs() {
+            if (!validateInputs()) return; // Stop execution if inputs are invalid
+
+            if (pdfChart) pdfChart.destroy();
+            if (cdfChart) cdfChart.destroy();
+
+            let distribution = document.getElementById("distribution").value;
+            let xValues = [];
+            let pdfValues = [];
+            let cdfValues = [];
+
+            if (distribution === "poisson" || distribution === "binomial") {
+                let lambda = parseFloat(document.getElementById("lambda")?.value) || 3;
+                let n = parseInt(document.getElementById("n")?.value) || 10;
+                let p = parseFloat(document.getElementById("p")?.value) || 0.5;
+
+                for (let k = 0; k <= n; k++) {
+                    if (distribution === "poisson") {
+                        let pmf = (Math.pow(lambda, k) * Math.exp(-lambda)) / math.factorial(k);
+                        pdfValues.push(pmf);
+                        cdfValues.push((cdfValues[k - 1] || 0) + pmf);
+                    } else {
+                        let pmf = math.combinations(n, k) * Math.pow(p, k) * Math.pow(1 - p, n - k);
+                        pdfValues.push(pmf);
+                        cdfValues.push((cdfValues[k - 1] || 0) + pmf);
+                    }
+                    xValues.push(k);
+                }
+            } else {
+                for (let x = -10; x <= 10; x += 0.1) {
+                    let pdf = 0, cdf = 0;
+
+                    switch (distribution) {
+                        case "gaussian":
+                            let mean = parseFloat(document.getElementById("mean").value);
+                            let stddev = parseFloat(document.getElementById("stddev").value);
+                            pdf = (1 / (stddev * Math.sqrt(2 * Math.PI))) * Math.exp(-0.5 * Math.pow((x - mean) / stddev, 2));
+                            cdf = 0.5 * (1 + math.erf((x - mean) / (stddev * Math.sqrt(2))));
+                            break;
+                        case "uniform":
+                            let a = parseFloat(document.getElementById("min").value);
+                            let b = parseFloat(document.getElementById("max").value);
+                            pdf = (x >= a && x <= b) ? 1 / (b - a) : 0;
+                            cdf = x < a ? 0 : x > b ? 1 : (x - a) / (b - a);
+                            break;
+                        case "rayleigh":
+                            let scale = parseFloat(document.getElementById("scale").value);
+                            xValues = math.range(0, 10, 0.1).toArray();
+                            pdfValues = xValues.map(x => (x / (scale ** 2)) * Math.exp(- (x ** 2) / (2 * (scale ** 2))));
+                            cdfValues = xValues.map(x => 1 - Math.exp(- (x ** 2) / (2 * (scale ** 2))));
+                            break;
+                        case "exponential":
+                            let lambda = parseFloat(document.getElementById("lambda").value);
+                            pdf = x >= 0 ? lambda * Math.exp(-lambda * x) : 0;
+                            cdf = x >= 0 ? 1 - Math.exp(-lambda * x) : 0;
+                            break;
+                        case "laplacian":
+                            let lapMean = parseFloat(document.getElementById("mean").value);
+                            let lapScale = parseFloat(document.getElementById("scale").value);
+                            xValues = math.range(lapMean - 5, lapMean + 5, 0.1).toArray();
+                            pdfValues = xValues.map(x => (1 / (2 * lapScale)) * Math.exp(-Math.abs(x - lapMean) / lapScale));
+                            cdfValues = xValues.map(x => 
+                                x < lapMean 
+                                    ? 0.5 * Math.exp((x - lapMean) / lapScale) 
+                                    : 1 - 0.5 * Math.exp(-(x - lapMean) / lapScale)
+                            );
+                            break;
+                    }
+                    xValues.push(x);
+                    pdfValues.push(pdf);
+                    cdfValues.push(cdf);
+                }
+            }
+
+            pdfChart = new Chart(document.getElementById("pdfChart"), {
+                type: distribution === "poisson" || distribution === "binomial" ? "bar" : "line",
+                data: { labels: xValues, datasets: [{ label: "PDF", data: pdfValues, borderColor: "blue", backgroundColor: "lightblue" }] }
+            });
+
+            cdfChart = new Chart(document.getElementById("cdfChart"), {
+                type: distribution === "poisson" || distribution === "binomial" ? "bar" : "line",
+                data: { labels: xValues, datasets: [{ label: "CDF", data: cdfValues, borderColor: "red", backgroundColor: "lightcoral" }] }
+            });
+        }
+
+        document.getElementById("distribution").addEventListener("change", getParameters);
+    
+
+        // Speech Recognition
+        function startRecognition() {
+            if (!("webkitSpeechRecognition" in window)) {
+                alert("Speech recognition is not supported in your browser.");
+                return;
+            }
+
+            recognition = new webkitSpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.lang = "en-US";
+
+            document.getElementById("status").textContent = "Listening...";
+            
+            recognition.onresult = function(event) {
+                let speechResult = event.results[0][0].transcript.toLowerCase().trim();
+                console.log("Recognized:", speechResult);
+
+                // Match distribution name
+                let distributions = {
+                    "normal": "gaussian",
+                    "gaussian": "gaussian",
+                    "uniform": "uniform",
+                    "rayleigh": "rayleigh",
+                    "exponential": "exponential",
+                    "poisson": "poisson",
+                    "binomial": "binomial",
+                    "laplacian": "laplacian"
+                };
+
+                for (let key in distributions) {
+                    if (speechResult.includes(key)) {
+                        document.getElementById("distribution").value = distributions[key];
+                        getParameters();
+                        console.log("Set Distribution:", distributions[key]);
+                    }
+                }
+
+                // Match parameters
+                let params = {
+                    "mean": "mean",
+                    "standard deviation": "stddev",
+                    "min": "min",
+                    "maximum": "max",
+                    "minimum": "min",
+                    "max": "max",
+                    "lambda": "lambda",
+                    "scale": "scale",
+                    "n": "n",
+                    "p": "p"
+                };
+
+                for (let key in params) {
+                    let regex = new RegExp(key + " (\\d+(\\.\\d+)?)");
+                    let match = speechResult.match(regex);
+                    if (match) {
+                        let paramName = params[key];
+                        let value = parseFloat(match[1]);
+                        let inputField = document.getElementById(paramName);
+                        if (inputField) {
+                    inputField.value = value;
+                    console.log(`Set ${paramName} to ${value}`);
+                } else {
+                    console.warn(`No input field found for ${paramName}`);
+                }
+            }
+            }
+
+                document.getElementById("status").textContent = "Recognized: " + speechResult;
+                plotGraphs();
+            };
+
+            recognition.onerror = function(event) {
+                console.error("Speech Recognition Error:", event.error);
+                document.getElementById("status").textContent = "Error: " + event.error;
+            };
+
+            recognition.start();
+        }
+    </script>
+</body>
+</html>

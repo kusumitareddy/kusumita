@@ -31,18 +31,18 @@
             margin: 10px;
         }
         /* Style for Help Button */
-        #helpButton {
-            position: fixed;
-            top: 5px;
-            left: 5px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            font-size: 16px;
-            border-radius: 5px;
-            cursor: pointer;
-        }
+        #buttonContainer {
+    position: fixed;
+    top: 20px;  /* Adjust based on your layout */
+    left: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px; /* Space between buttons */
+}
+
+#helpButton {
+    background-color: #28a745; /* Green color for Help button */
+}
 
         /* Style for Help Popup */
         #helpPopup {
@@ -106,6 +106,7 @@
         <p>Uniform distribution with min 0 and max 10.</p>
         <button onclick="closeHelp()">Close</button>
     </div>
+    
 
     <script>
         let pdfChart, cdfChart;
@@ -431,3 +432,5 @@
 
 </body>
 </html>
+
+

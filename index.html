@@ -30,11 +30,49 @@
             font-size: 1.2em;
             margin: 10px;
         }
+        /* Style for Help Button */
+        #helpButton {
+            position: fixed;
+            top: 5px;
+            left: 5px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        /* Style for Help Popup */
+        #helpPopup {
+            display: none;
+            position: fixed;
+            bottom: 60px;
+            left: 20px;
+            width: 250px;
+            background-color: white;
+            border: 1px solid black;
+            padding: 15px;
+            box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.2);
+            border-radius: 5px;
+        }
+
+        #helpPopup button {
+            display: block;
+            margin: 10px auto;
+            padding: 5px 10px;
+            background-color: red;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h2>Probability Distributions</h2>
+        <p>Speak or select the required random variable followed by its parameters.</p>
         <label for="distribution">Select Distribution:</label>
         <select id="distribution">
             <option value="gaussian">gaussian</option>
@@ -52,6 +90,21 @@
         <p id="status"></p>
         <canvas id="pdfChart"></canvas>
         <canvas id="cdfChart"></canvas>
+    </div>
+
+    
+
+    <!-- Help Button -->
+    <button id="helpButton">❓ Help</button>
+
+    <!-- Help Popup -->
+    <div id="helpPopup">
+        <p><strong>Give voice input as follows:</strong></p>
+        <p>Speak the distribution name followed by its parameters.</p>
+        <p><strong>Example:</strong></p>
+        <p>Gaussian distribution with mean 0 and standard deviation 1.</p>
+        <p>Uniform distribution with min 0 and max 10.</p>
+        <button onclick="closeHelp()">Close</button>
     </div>
 
     <script>
@@ -228,10 +281,47 @@
                             );
                             break;
                     }
-                    xValues.push(x);
+                    xValues.push(parseFloat(x.toFixed(1)));
                     pdfValues.push(pdf);
                     cdfValues.push(cdf);
                 }
+                pdfChart = new Chart(document.getElementById("pdfChart"), {
+                type: "line",
+                data: {
+                    labels: xValues,
+                    datasets: [{ label: "PDF", data: pdfValues, borderColor: "blue", backgroundColor: "lightblue" }]
+                },
+                options: {
+                    scales: {
+                        x: {
+                            ticks: {
+                                callback: function(value) {
+                                    return parseFloat(value).toFixed(1); // Show one decimal place
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            cdfChart = new Chart(document.getElementById("cdfChart"), {
+                type: "line",
+                data: {
+                    labels: xValues,
+                    datasets: [{ label: "CDF", data: cdfValues, borderColor: "red", backgroundColor: "lightcoral" }]
+                },
+                options: {
+                    scales: {
+                        x: {
+                            ticks: {
+                                callback: function(value) {
+                                    return parseFloat(value).toFixed(1); // Show one decimal place
+                                }
+                            }
+                        }
+                    }
+                }
+            });
             }
 
             pdfChart = new Chart(document.getElementById("pdfChart"), {
@@ -328,5 +418,16 @@
             recognition.start();
         }
     </script>
+    <script>
+        // Help button event listener
+        document.getElementById("helpButton").addEventListener("click", function () {
+            document.getElementById("helpPopup").style.display = "block";
+        });
+
+        function closeHelp() {
+            document.getElementById("helpPopup").style.display = "none";
+        }
+    </script>
+
 </body>
 </html>
